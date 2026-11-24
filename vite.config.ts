@@ -10,6 +10,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     host: "0.0.0.0",
+    // Arena live-preview proxies through its own host alias.
+    allowedHosts: true,
   },
   build: {
     target: "es2022",
