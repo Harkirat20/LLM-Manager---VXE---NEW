@@ -16,7 +16,7 @@ use std::process::Stdio;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
 use crate::error::{AppError, AppResult};
@@ -165,13 +165,12 @@ fn humanize_line(agent: &str, line: &str) -> String {
             format!("result: {sub}")
         }
         "" => cleaned,
-        other => format!("{other}: {}", {
-            let mut s = cleaned;
-            if s.len() > 200 {
-                s.truncate(200);
-            }
-            s
-        }),
+        other => {
+            // char-based cut — String::truncate panics on a non-UTF-8
+            // boundary, and agent output regularly contains CJK/emoji.
+            let short: String = cleaned.chars().take(200).collect();
+            format!("{other}: {short}")
+        }
     }
 }
 
@@ -195,8 +194,14 @@ fn build_command(
         "claude" => {
             // Per-process env injection — the signature feature. Nothing is
             // written to ~/.claude or the system environment.
+            //
+            // The prompt is deliberately NOT passed as a CLI argument: on
+            // Windows we run through `cmd /C` (npm shims are .cmd), and cmd
+            // would corrupt prompts containing `&`, `^` or `%VAR%` sequences.
+            // `claude -p` without a positional reads the prompt from stdin
+            // [VERIFY V1 — if a future CC build requires the positional,
+            // fall back to argv and re-test].
             args.push("-p".into());
-            args.push(prompt.to_string());
             args.push("--output-format".into());
             args.push("stream-json".into());
             args.push("--verbose".into()); // required with -p + stream-json
@@ -264,6 +269,10 @@ fn build_command(
             args.push("run".into());
             args.push("--model".into());
             args.push(format!("omniroute/{model}"));
+            // Prompt via argv (unlike claude's stdin path). On Windows this
+            // goes through `cmd /C`, so prompts containing `%…%` pairs could
+            // be mangled by cmd's variable expansion — acceptable for v0.1,
+            // revisit together with spike V4 [VERIFY].
             args.push(prompt.to_string());
         }
         other => {
@@ -286,7 +295,13 @@ fn build_command(
     cmd.args(&args)
         .current_dir(&spec.folder)
         .envs(extra_env)
-        .stdin(Stdio::null())
+        // Piped stdin only for claude (prompt delivery above); opencode gets
+        // its prompt as an argv value.
+        .stdin(if spec.agent == "claude" {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         // Safety: no orphan processes if we exit on an error path.
@@ -353,15 +368,9 @@ pub async fn run_agent_prompt(
         .id()
         .ok_or_else(|| AppError::new("Agent process vanished immediately"))?;
 
-    // Register for stop_agent (kill by pid → whole tree).
-    {
-        let mut agents = state
-            .agents
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        agents.insert(session_id.clone(), pid);
-    }
-
+    // Take every pipe BEFORE registering the pid, so a failure below cannot
+    // leave a stale pid in the map (kill-by-pid would then be wrong).
+    let stdin = child.stdin.take();
     let stdout = child
         .stdout
         .take()
@@ -370,6 +379,15 @@ pub async fn run_agent_prompt(
         .stderr
         .take()
         .ok_or_else(|| AppError::new("Agent stderr unavailable"))?;
+
+    // Register for stop_agent (kill by pid → whole tree).
+    {
+        let mut agents = state
+            .agents
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        agents.insert(session_id.clone(), pid);
+    }
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -407,6 +425,22 @@ pub async fn run_agent_prompt(
             );
         }
     });
+
+    // Feed the prompt over stdin (claude only — opencode received it via
+    // argv). Dropping the handle closes the pipe, which is the EOF signal
+    // `claude -p` waits for before it starts working.
+    if let Some(mut stdin) = stdin {
+        if let Err(e) = stdin.write_all(prompt.as_bytes()).await {
+            let _ = app.emit(
+                "agent-line",
+                AgentLine {
+                    session_id: session_id.clone(),
+                    line: format!("warn: could not feed full prompt to stdin: {e}"),
+                },
+            );
+        }
+        // stdin dropped here → EOF
+    }
 
     // Drain structured output until the pipe closes…
     let mut text = String::new();

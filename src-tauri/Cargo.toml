@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "LLM Manager — chat and code on any model through OmniRoute"
 authors = ["LLM Manager"]
 edition = "2021"
-rust-version = "1.77.2"
+# Matches the Tauri v2 workspace floor (tauri-cli requires 1.90); rfd 0.15 and
+# reqwest 0.12 are both below that floor. Use a current stable toolchain.
+rust-version = "1.90"
 
 [lib]
 name = "llm_manager_lib"
@@ -37,4 +39,5 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
-panic = "abort"
+# Note: no `panic = "abort"` — matches the official Tauri template so unwinding
+# behaves as the ecosystem expects.

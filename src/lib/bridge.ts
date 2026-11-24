@@ -28,12 +28,15 @@ export const bridge = {
   listModels: () => call<ModelInfo[]>("list_models"),
   testConnection: (baseUrl: string, apiKey: string) =>
     call<ConnectionStatus>("test_connection", { baseUrl, apiKey }),
+  // `send_chat` takes ONE struct param (`req: ChatRequest`), so the payload
+  // must be wrapped under the parameter name — Tauri binds args by key, it
+  // does not flatten structs. (Verified: "missing required key req" otherwise.)
   sendChat: (payload: {
     model: string;
     baseUrl: string;
     apiKey: string;
     messages: { role: string; content: string }[];
-  }) => call<string>("send_chat", payload),
+  }) => call<string>("send_chat", { req: payload }),
   pickFolder: () => call<string | null>("pick_folder"),
   runAgentPrompt: (sessionId: string, prompt: string, spec: AgentSpec) =>
     call<string>("run_agent_prompt", { sessionId, prompt, spec }),

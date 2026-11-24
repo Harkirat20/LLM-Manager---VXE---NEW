@@ -1,12 +1,15 @@
 use tauri::State;
 
 use crate::error::{AppError, AppResult};
-use crate::settings;
+// Aliased: the `settings` parameter below must not interact with the module
+// name in expression paths (`settings::save(...)`). Type-namespace resolution
+// would pick the module, but an alias removes any doubt.
+use crate::settings as app_settings;
 use crate::state::AppState;
 
 /// Read the current settings (frontend boot).
 #[tauri::command]
-pub fn get_settings(state: State<'_, AppState>) -> settings::AppSettings {
+pub fn get_settings(state: State<'_, AppState>) -> app_settings::AppSettings {
     state.settings()
 }
 
@@ -14,12 +17,12 @@ pub fn get_settings(state: State<'_, AppState>) -> settings::AppSettings {
 #[tauri::command]
 pub fn save_settings(
     state: State<'_, AppState>,
-    settings: settings::AppSettings,
-) -> AppResult<settings::AppSettings> {
+    settings: app_settings::AppSettings,
+) -> AppResult<app_settings::AppSettings> {
     if settings.provider.base_url.trim().is_empty() {
         return Err(AppError::new("Base URL cannot be empty"));
     }
-    settings::save(&state.config_dir, &settings)?;
+    app_settings::save(&state.config_dir, &settings)?;
     *state
         .settings
         .lock()

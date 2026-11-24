@@ -69,11 +69,15 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     }
 
     case "sendChat": {
-      const model = (args?.model as string) ?? "auto";
+      // Mirrors the real IPC shape: the payload is wrapped under `req`.
+      const req = (args?.req ?? args) as {
+        model?: string;
+        messages?: { role: string; content: string }[];
+      };
+      const model = req.model ?? "auto";
       const prompt = String(
-        ((args?.messages as { role: string; content: string }[]) ?? []).filter(
-          (m) => m.role === "user",
-        ).slice(-1)[0]?.content ?? "",
+        (req.messages ?? []).filter((m) => m.role === "user").slice(-1)[0]
+          ?.content ?? "",
       );
       await sleep(400 + Math.random() * 500);
       return mockReply(model, prompt) as T;

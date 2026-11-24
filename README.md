@@ -46,8 +46,8 @@ npm install
 # UI only (browser, mocked backend) — no Rust needed:
 npm run dev
 
-# Full app (requires Rust + Tauri v2 prerequisites):
-#   https://v2.tauri.app/start/prerequisites/
+# Full app — requires Rust **≥ 1.90** (Tauri v2's MSRV) plus the Tauri v2
+# prerequisites: https://v2.tauri.app/start/prerequisites/
 npm run tauri dev
 
 # Windows NSIS installer:
@@ -57,6 +57,11 @@ npm run tauri build
 > **Note:** this workspace's sandbox has no Rust toolchain and blocks
 > crates.io, so the Rust side is written to compile with `cargo` on your
 > machine (`cargo check` inside `src-tauri/` is the first thing to run there).
+>
+> The Rust/IPC layer was instead verified against Tauri's own sources on
+> GitHub — command-name casing (`RenamePolicy::Keep`), camelCase argument
+> binding, struct-arg wrapping (`{ req: … }`), capability/ACL validation,
+> and `tauri.conf.json` key schemas (see `git log` for the audit).
 
 ### Prerequisites on the target machine (Windows 10/11 x64)
 
