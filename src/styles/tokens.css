@@ -1,0 +1,54 @@
+/* LLM Manager design tokens — warm cream canvas, clay accent, serif prose.
+   Values approximate Claude Desktop (blueprint §3.2); calibrate against a
+   real screenshot in the visual pass (blueprint §5.6). */
+
+:root {
+  /* Surfaces */
+  --bg: #faf9f5;
+  --bg-raised: #ffffff;
+  --bg-sidebar: #f5f3ee;
+  --bg-hover: #efece5;
+  --bg-active: #e9e5dc;
+  --bg-user: #f1ede4;
+
+  /* Ink (warm neutrals — every gray has a yellow-brown undertone) */
+  --ink: #141413;
+  --ink-soft: #55524c;
+  --ink-faint: #8f8b81;
+  --ink-ghost: #b5b1a7;
+
+  /* One accent: clay / terracotta */
+  --clay: #d97757;
+  --clay-strong: #c96442;
+  --clay-soft: #f5e3db;
+  --clay-text: #a84d31;
+
+  /* Lines */
+  --border: #e9e6df;
+  --border-strong: #dcd8cf;
+
+  /* Feedback */
+  --ok: #3f7d55;
+  --ok-soft: #e2efe5;
+  --warn: #a5761f;
+  --warn-soft: #f5ecd8;
+  --err: #b3402f;
+  --err-soft: #f7e4e0;
+
+  /* Shape — soft rounded corners, almost no shadows (blueprint §3.2) */
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-sm: 7px;
+  --shadow-pop: 0 8px 28px rgba(20, 20, 19, 0.1), 0 1px 3px rgba(20, 20, 19, 0.06);
+
+  /* Type — open-licensed substitutes for Anthropic's proprietary faces */
+  --font-serif: "Copernicus", "Tiempos Text", Georgia, "Times New Roman", serif;
+  --font-sans: "Styrene A", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono",
+    Consolas, monospace;
+
+  --sidebar-w: 264px;
+  --header-h: 52px;
+}

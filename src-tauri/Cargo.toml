@@ -1,0 +1,40 @@
+[package]
+name = "llm-manager"
+version = "0.1.0"
+description = "LLM Manager — chat and code on any model through OmniRoute"
+authors = ["LLM Manager"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "llm_manager_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# rustls avoids needing OpenSSL / Schannel system deps on every platform.
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
+tokio = { version = "1", features = [
+  "macros",
+  "rt-multi-thread",
+  "process",
+  "io-util",
+  "time",
+  "sync",
+] }
+rfd = "0.15"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+panic = "abort"
